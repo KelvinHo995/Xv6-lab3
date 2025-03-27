@@ -75,6 +75,44 @@ int
 sys_pgaccess(void)
 {
   // lab pgtbl: your code here.
+  uint64 start_va; // địa chỉ ảo bắt đầu
+  int num_pages;   // số trang cần quét
+  uint64 mask_ptr; // địa chỉ user để lưu bitmask
+
+  argaddr(0, &start_va);
+  argint(1, &num_pages);
+  argaddr(2, &mask_ptr);
+
+  struct proc *p = myproc();
+  pagetable_t pagetable = p->pagetable;
+  if (!pagetable) return -1;
+
+  // Tạo bitmask
+  uint32 mask = 0;
+
+  for(int i = 0; i < num_pages; i++){
+    uint64 va = start_va + i*PGSIZE;
+
+    // Tìm pte tương ứng
+    pte_t *pte = walk(pagetable, va, 0);
+    if (pte == 0) {
+      // Khong co PTE, khong set bit
+      continue;
+    }
+
+    // Kiểm tra PTE có valid không và bit A có set không
+    if((*pte & PTE_V) && (*pte & PTE_A)) {
+      // Set bit thứ i
+      mask |= (1 << i);
+
+      // Xóa bit PTE_A
+      *pte &= ~PTE_A;
+    }
+  }
+
+  // Sao chép bitmask về user space
+  copyout(pagetable, mask_ptr, (char *)&mask, sizeof(mask));
+ 
   return 0;
 }
 #endif
