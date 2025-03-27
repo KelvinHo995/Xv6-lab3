@@ -449,3 +449,25 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+
+void vmprint(pagetable_t pagetable) {
+  if (pagetable == 0) {
+      printf("vmprint: pagetable is NULL\n");
+      return;
+  }
+
+  printf("Page table %p\n", pagetable);
+  for (int i = 0; i < 512; i++) {
+      pte_t pte = pagetable[i];
+      if (pte & PTE_V) {
+          uint64 child = PTE2PA(pte);
+          printf(" PTE %d -> PA %p\n", i, child);
+
+          if ((pte & (PTE_R | PTE_W | PTE_X)) == 0) {
+              // Tiếp tục in bảng trang con nếu không phải cấp cuối
+              vmprint((pagetable_t)child);
+          }
+      }
+  }
+}
